@@ -6,18 +6,12 @@ import MessageCard from "./MessageCard";
 
 const Chats = () => {
 
-  const onPressFunction = () => {
-    router.navigate({
-      pathname:"/chat",
-    });
-  };
   const data = [{
     Image:imagePath.logo,
     name:"John Doe",
     message:"Hello, how are you?",
     time:"00:00 PM",
     messageCount:1,
-    onPress: onPressFunction,
 },
 {
   Image:imagePath.logo,
@@ -25,19 +19,24 @@ const Chats = () => {
   message:"Hello, how are you?",
   time:"9:00 PM",
   messageCount:3,
-  onPress: onPressFunction,
 },{
   Image:imagePath.logo,
   name:"Calix Gonsalves",
   message:"Hello, how are you?",
   time:"11:00 PM",
   messageCount:0,
-  onPress: onPressFunction,
 }];
+
+  const onPressFunction = (name: string) => {
+    router.push({
+      pathname: "/chat",
+      params: { name: name },
+    });
+  };
   return (
     <View style={{ flex: 1 }}>
       <FlatList data={data} renderItem={({item})=>{
-      return <MessageCard name={item?.name} message={item?.message} time={item.time} count={item?.messageCount} image={item?.Image} onPress={item?.onPress}/>
+      return <MessageCard name={item?.name} message={item?.message} time={item.time} count={item?.messageCount} image={item?.Image} onPress={() => onPressFunction(item?.name)}/>
     }}/>
     </View>
   );

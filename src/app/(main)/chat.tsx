@@ -1,18 +1,22 @@
+import ChatMenu from "@/src/components/molecules/ChatMenu";
+import CoinBalanceSheet from "@/src/components/molecules/CoinBalanceSheet";
+import VoiceRecorder from "@/src/components/molecules/VoiceRecorder";
 import imagePath from "@/src/constants/imagePath";
 import { modernScale, scale, verticalScale } from "@/src/utils/scaling";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    FlatList,
-    Image,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,6 +31,13 @@ interface Message {
 }
 
 const ChatScreen = () => {
+  const router = useRouter();
+  const { name } = useLocalSearchParams();
+  const chatName = (name as string) || "Miya";
+  const [showCoinSheet, setShowCoinSheet] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       _id: 1,
@@ -108,24 +119,36 @@ const ChatScreen = () => {
     return (
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Image source={imagePath.logo} style={styles.headerAvatar} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerName}>Miya</Text>
-            <Text style={styles.headerStatus}>online</Text>
-          </View>
+          <TouchableOpacity 
+            style={styles.headerProfile}
+            onPress={() => router.push({
+              pathname: "/profile",
+              params: { name: chatName }
+            })}
+          >
+            <Image source={imagePath.logo} style={styles.headerAvatar} />
+            <Text style={styles.headerName}>{chatName}</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="videocam" size={24} color="white" />
+          <TouchableOpacity 
+            style={styles.coinBadge}
+            onPress={() => setShowCoinSheet(true)}
+          >
+            <Ionicons name="flash" size={16} color="#FFD700" />
+            <Text style={styles.coinText}>100</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="call" size={20} color="white" />
+            <Ionicons name="call" size={22} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="ellipsis-vertical" size={20} color="white" />
+          <TouchableOpacity 
+            style={styles.headerIcon}
+            onPress={() => setShowMenu(true)}
+          >
+            <Ionicons name="ellipsis-vertical" size={22} color="white" />
           </TouchableOpacity>
         </View>
       </View>
@@ -133,31 +156,49 @@ const ChatScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <ChatHeader />
-      <ImageBackground source={imagePath.chat_bg} style={styles.chatBackground}>
-        <View style={styles.encryptionBanner}>
-          <Ionicons name="lock-closed" size={12} color="#8696a0" />
-          <Text style={styles.encryptionText}>
-            Messages and calls are end-to-end encrypted
-          </Text>
-        </View>
-        <FlatList
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item._id.toString()}
-          contentContainerStyle={styles.messagesList}
-        />
-      </ImageBackground>
+      <CoinBalanceSheet 
+        visible={showCoinSheet} 
+        onClose={() => setShowCoinSheet(false)} 
+      />
+      <ChatMenu
+        visible={showMenu}
+        onClose={() => setShowMenu(false)}
+        onDeleteChat={() => {
+          // Handle delete chat
+          console.log("Delete chat");
+        }}
+        onTermsConditions={() => {
+          // Navigate to terms
+          console.log("Terms & Conditions");
+        }}
+        onPrivacyPolicy={() => {
+          // Navigate to privacy policy
+          console.log("Privacy Policy");
+        }}
+      />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TouchableOpacity style={styles.emojiButton}>
-              <Ionicons name="happy-outline" size={24} color="#8696a0" />
-            </TouchableOpacity>
+        <ImageBackground source={imagePath.chat_bg} style={styles.chatBackground}>
+          <View style={styles.encryptionBanner}>
+            <Ionicons name="lock-closed" size={12} color="#8696a0" />
+            <Text style={styles.encryptionText}>
+              Messages and calls are end-to-end encrypted
+            </Text>
+          </View>
+          <FlatList
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item._id.toString()}
+            contentContainerStyle={styles.messagesList}
+          />
+        </ImageBackground>
+        {!isRecording ? (
+          <View style={styles.inputContainer}>
             <TextInput
               style={styles.textInput}
               value={inputText}
@@ -166,17 +207,26 @@ const ChatScreen = () => {
               placeholderTextColor="#8696a0"
               multiline
             />
-            <TouchableOpacity style={styles.attachButton}>
-              <Ionicons name="attach" size={24} color="#8696a0" />
+            <TouchableOpacity 
+              style={styles.micButton}
+              onPress={() => setIsRecording(true)}
+            >
+              <Ionicons name="mic" size={24} color="#8696a0" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cameraButton}>
-              <Ionicons name="camera-outline" size={24} color="#8696a0" />
+            <TouchableOpacity style={styles.sendButton} onPress={onSendMessage}>
+              <Ionicons name="send" size={22} color="white" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.sendButton} onPress={onSendMessage}>
-            <Ionicons name="send" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <VoiceRecorder
+            visible={isRecording}
+            onCancel={() => setIsRecording(false)}
+            onSend={() => {
+              setIsRecording(false);
+              // Handle voice message send
+            }}
+          />
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -186,6 +236,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0b141a",
+  },
+  flex: {
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -198,6 +251,11 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
+    gap: scale(12),
+  },
+  headerProfile: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: scale(10),
   },
   headerAvatar: {
@@ -205,24 +263,32 @@ const styles = StyleSheet.create({
     height: modernScale(40),
     borderRadius: modernScale(20),
   },
-  headerInfo: {
-    justifyContent: "center",
-  },
   headerName: {
     color: "white",
-    fontSize: modernScale(16),
+    fontSize: modernScale(18),
     fontWeight: "600",
-  },
-  headerStatus: {
-    color: "#8696a0",
-    fontSize: modernScale(13),
   },
   headerRight: {
     flexDirection: "row",
-    gap: scale(20),
+    alignItems: "center",
+    gap: scale(15),
+  },
+  coinBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3a4a54",
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(6),
+    borderRadius: 20,
+    gap: scale(4),
+  },
+  coinText: {
+    color: "white",
+    fontSize: modernScale(14),
+    fontWeight: "600",
   },
   headerIcon: {
-    padding: scale(5),
+    padding: scale(4),
   },
   chatBackground: {
     flex: 1,
@@ -278,46 +344,39 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
-    paddingHorizontal: scale(8),
-    paddingVertical: verticalScale(8),
-    backgroundColor: "#202c33",
-    alignItems: "flex-end",
-    gap: scale(8),
-  },
-  inputWrapper: {
-    flex: 1,
-    flexDirection: "row",
-    backgroundColor: "#2a3942",
-    borderRadius: 25,
-    alignItems: "center",
     paddingHorizontal: scale(12),
-    paddingVertical: verticalScale(8),
-  },
-  emojiButton: {
-    marginRight: scale(5),
+    paddingVertical: verticalScale(10),
+    backgroundColor: "#202c33",
+    alignItems: "center",
+    gap: scale(10),
   },
   textInput: {
     flex: 1,
     color: "#e9edef",
     fontSize: modernScale(16),
+    backgroundColor: "#2a3942",
+    borderRadius: 25,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(10),
     maxHeight: modernScale(100),
-    paddingVertical: 0,
   },
-  attachButton: {
-    marginLeft: scale(5),
-    transform: [{ rotate: "-45deg" }],
-  },
-  cameraButton: {
-    marginLeft: scale(8),
+  micButton: {
+    width: modernScale(44),
+    height: modernScale(44),
+    backgroundColor: "#2a3942",
+    borderRadius: modernScale(22),
+    justifyContent: "center",
+    alignItems: "center",
   },
   sendButton: {
     backgroundColor: "#00a884",
-    width: modernScale(48),
-    height: modernScale(48),
-    borderRadius: modernScale(24),
+    width: modernScale(44),
+    height: modernScale(44),
+    borderRadius: modernScale(22),
     justifyContent: "center",
     alignItems: "center",
   },
 });
 
 export default ChatScreen;
+
