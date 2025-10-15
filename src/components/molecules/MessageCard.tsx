@@ -31,6 +31,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: scale(20),
         paddingVertical: verticalScale(15),
+        backgroundColor: "#0b141a",
     },
     image: {
       height: modernScale(53),
@@ -40,7 +41,7 @@ const styles = StyleSheet.create({
     name: {
       fontWeight: "bold",
       fontSize: modernScale(14),
-      color: "black",
+      color: "#e9edef",
     },
     message: {
       fontSize: modernScale(13),

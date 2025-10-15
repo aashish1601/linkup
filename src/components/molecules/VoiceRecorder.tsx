@@ -1,5 +1,6 @@
 import { modernScale, scale, verticalScale } from "@/src/utils/scaling";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import React, { useEffect, useState } from "react";
 import {
     Animated,
@@ -12,15 +13,18 @@ import {
 interface VoiceRecorderProps {
   visible: boolean;
   onCancel: () => void;
-  onSend: () => void;
+  onSend: (audioUri: string, duration: number) => void;
 }
 
 const VoiceRecorder = ({ visible, onCancel, onSend }: VoiceRecorderProps) => {
   const [recordingTime, setRecordingTime] = useState(0);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const pulseAnim = new Animated.Value(1);
 
   useEffect(() => {
     if (visible) {
+      startRecording();
+
       // Start timer
       const interval = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
@@ -45,9 +49,65 @@ const VoiceRecorder = ({ visible, onCancel, onSend }: VoiceRecorderProps) => {
       return () => {
         clearInterval(interval);
         setRecordingTime(0);
+        stopRecording();
       };
     }
   }, [visible]);
+
+  const startRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== "granted") {
+        console.log("Permission to access microphone denied");
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
+    } catch (err) {
+      console.error("Failed to start recording", err);
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+
+    try {
+      await recording.stopAndUnloadAsync();
+      setRecording(null);
+    } catch (err) {
+      console.error("Failed to stop recording", err);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!recording) return;
+
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      const duration = recordingTime;
+      setRecording(null);
+
+      if (uri) {
+        onSend(uri, duration);
+      }
+    } catch (err) {
+      console.error("Failed to send recording", err);
+    }
+  };
+
+  const handleCancel = async () => {
+    await stopRecording();
+    onCancel();
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -77,7 +137,7 @@ const VoiceRecorder = ({ visible, onCancel, onSend }: VoiceRecorderProps) => {
         <Text style={styles.slideText}>Slide to cancel</Text>
 
         {/* Send Button */}
-        <TouchableOpacity style={styles.sendButton} onPress={onSend}>
+        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
           <Ionicons name="send" size={20} color="white" />
         </TouchableOpacity>
       </View>

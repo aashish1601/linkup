@@ -22,7 +22,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Message {
   _id: number;
-  text: string;
+  text?: string;
+  audio?: {
+    uri: string;
+    duration: number;
+  };
   createdAt: Date;
   user: {
     _id: number;
@@ -41,24 +45,6 @@ const ChatScreen = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       _id: 1,
-      text: "what is for dinner?",
-      createdAt: new Date(),
-      user: {
-        _id: 1,
-        name: "Rohan Nayak",
-      },
-    },
-    {
-      _id: 2,
-      text: "9:30 seh maati",
-      createdAt: new Date(),
-      user: {
-        _id: 1,
-        name: "Rohan Nayak",
-      },
-    },
-    {
-      _id: 3,
       text: "what is your name?",
       createdAt: new Date(),
       user: {
@@ -103,7 +89,19 @@ const ChatScreen = () => {
           isSentByMe ? styles.sentMessage : styles.receivedMessage,
         ]}
       >
-        <Text style={styles.messageText}>{item.text}</Text>
+        {item.audio ? (
+          <View style={styles.audioMessage}>
+            <Ionicons name="play" size={20} color={isSentByMe ? "#e9edef" : "#e9edef"} />
+            <View style={styles.audioWave}>
+              <View style={styles.waveLine} />
+            </View>
+            <Text style={styles.audioDuration}>
+              {Math.floor(item.audio.duration / 60)}:{(item.audio.duration % 60).toString().padStart(2, "0")}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.messageText}>{item.text}</Text>
+        )}
         <Text style={styles.messageTime}>
           {new Date(item.createdAt).toLocaleTimeString("en-US", {
             hour: "2-digit",
@@ -141,7 +139,13 @@ const ChatScreen = () => {
             <Ionicons name="flash" size={16} color="#FFD700" />
             <Text style={styles.coinText}>100</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity 
+            style={styles.headerIcon}
+            onPress={() => router.push({
+              pathname: "/(main)/call",
+              params: { name: chatName }
+            })}
+          >
             <Ionicons name="call" size={22} color="white" />
           </TouchableOpacity>
           <TouchableOpacity 
@@ -221,9 +225,21 @@ const ChatScreen = () => {
           <VoiceRecorder
             visible={isRecording}
             onCancel={() => setIsRecording(false)}
-            onSend={() => {
+            onSend={(audioUri: string, duration: number) => {
+              const voiceMessage: Message = {
+                _id: messages.length + 1,
+                audio: {
+                  uri: audioUri,
+                  duration: duration,
+                },
+                createdAt: new Date(),
+                user: {
+                  _id: 2,
+                  name: chatName,
+                },
+              };
+              setMessages([...messages, voiceMessage]);
               setIsRecording(false);
-              // Handle voice message send
             }}
           />
         )}
@@ -341,6 +357,26 @@ const styles = StyleSheet.create({
     fontSize: modernScale(11),
     alignSelf: "flex-end",
     marginTop: verticalScale(4),
+  },
+  audioMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(10),
+    minWidth: scale(200),
+  },
+  audioWave: {
+    flex: 1,
+    height: verticalScale(30),
+    justifyContent: "center",
+  },
+  waveLine: {
+    height: verticalScale(2),
+    backgroundColor: "#8696a0",
+    borderRadius: 1,
+  },
+  audioDuration: {
+    color: "#e9edef",
+    fontSize: modernScale(12),
   },
   inputContainer: {
     flexDirection: "row",
